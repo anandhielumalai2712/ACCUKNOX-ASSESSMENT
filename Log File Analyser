@@ -1,0 +1,43 @@
+import re
+from collections import Counter
+
+# Define the log file location
+log_file = "/var/log/nginx/access.log"
+
+# Regular expression to match log entries
+log_pattern = re.compile(r'(?P<ip>[\d\.]+) - - \[.*\] "(?P<method>[A-Z]+) (?P<url>.*?) HTTP/.*" (?P<status_code>\d{3})')
+
+# Function to analyze the log file
+def analyze_logs(log_file):
+    with open(log_file, 'r') as file:
+        logs = file.readlines()
+
+    # Track counts for different patterns
+    status_codes = Counter()
+    url_counts = Counter()
+    ip_counts = Counter()
+
+    for line in logs:
+        match = log_pattern.match(line)
+        if match:
+            ip = match.group('ip')
+            status_code = match.group('status_code')
+            url = match.group('url')
+            
+            # Update counters
+            status_codes[status_code] += 1
+            url_counts[url] += 1
+            ip_counts[ip] += 1
+    
+    # Output the analysis
+    print(f"Total 404 errors: {status_codes.get('404', 0)}")
+    print("Most requested pages:")
+    for url, count in url_counts.most_common(5):
+        print(f"{url}: {count} times")
+    
+    print("Top 5 IP addresses with most requests:")
+    for ip, count in ip_counts.most_common(5):
+        print(f"{ip}: {count} requests")
+
+# Run the log analysis
+analyze_logs(log_file)
