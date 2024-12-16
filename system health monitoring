@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Define threshold values
+CPU_THRESHOLD=80
+MEMORY_THRESHOLD=80
+DISK_THRESHOLD=90
+
+# Function to check CPU usage
+check_cpu() {
+    CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    if (( $(echo "$CPU_USAGE > $CPU_THRESHOLD" | bc -l) )); then
+        echo "Warning: CPU Usage is above $CPU_THRESHOLD% ($CPU_USAGE%)" >> /var/log/system_health.log
+    else
+        echo "CPU Usage is normal: $CPU_USAGE%" >> /var/log/system_health.log
+    fi
+}
+
+# Function to check memory usage
+check_memory() {
+    MEMORY_USAGE=$(free | grep Mem | awk '{print $3/$2 * 100.0}')
+    if (( $(echo "$MEMORY_USAGE > $MEMORY_THRESHOLD" | bc -l) )); then
+        echo "Warning: Memory Usage is above $MEMORY_THRESHOLD% ($MEMORY_USAGE%)" >> /var/log/system_health.log
+    else
+        echo "Memory Usage is normal: $MEMORY_USAGE%" >> /var/log/system_health.log
+    fi
+}
+
+# Function to check disk space usage
+check_disk() {
+    DISK_USAGE=$(df / | grep / | awk '{ print $5 }' | sed 's/%//g')
+    if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD" ]; then
+        echo "Warning: Disk space usage is above $DISK_THRESHOLD% ($DISK_USAGE%)" >> /var/log/system_health.log
+    else
+        echo "Disk space usage is normal: $DISK_USAGE%" >> /var/log/system_health.log
+    fi
+}
+
+# Function to check running processes
+check_processes() {
+    PROCESS_COUNT=$(ps aux | wc -l)
+    if [ "$PROCESS_COUNT" -gt 200 ]; then
+        echo "Warning: Too many processes running ($PROCESS_COUNT)" >> /var/log/system_health.log
+    else
+        echo "Number of running processes is normal: $PROCESS_COUNT" >> /var/log/system_health.log
+    fi
+}
+
+# Main function to check system health
+echo "System Health Check started at $(date)" >> /var/log/system_health.log
+check_cpu
+check_memory
+check_disk
+check_processes
+echo "System Health Check completed at $(date)" >> /var/log/system_health.log
